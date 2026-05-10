@@ -16,9 +16,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] ="varshitha_task_manager_secret_2024"
 db.init_app(app)
 socketio = SocketIO(app, cors_allowed_origins="*") 
- with app.app_context():
+with app.app_context():
  db.create_all()
-print(">>> Database Tables Created <<<")
+    print(">>> Database Tables Created <<<")
 def emit_analytics():
     tasks = Task.query.all()
     if not tasks:
