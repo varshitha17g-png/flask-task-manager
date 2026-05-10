@@ -4,3 +4,4 @@ psycopg2-binary
 python-dotenv
 gunicorn==21.2.0
 Flask-SocketIO==5.3.6
+pandas==2.2.2
