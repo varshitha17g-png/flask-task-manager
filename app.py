@@ -16,6 +16,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] ="varshitha_task_manager_secret_2024"
 db.init_app(app)
 socketio = SocketIO(app, cors_allowed_origins="*") 
+ with app.app_context():
+ db.create_all()
+print(">>> Database Tables Created <<<")
 def emit_analytics():
     tasks = Task.query.all()
     if not tasks:
@@ -142,7 +145,4 @@ def get_analytics():
         'status_breakdown': status_counts
     })
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        print(">>> Database Ready <<<")
-    socketio.run(app, debug=True)  
+     socketio.run(app, debug=True) 
