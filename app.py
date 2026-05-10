@@ -1,21 +1,31 @@
+import eventlet
+eventlet.monkey_patch()
+
 import os
 from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(dotenv_path=Path('.') / '.env')
 from flask import Flask, request, render_template, jsonify, redirect, url_for
 from extensions import db
-from models import Task, User  # User import chesam
+from models import Task, User
 from flask_socketio import SocketIO, emit
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user  # Login imports
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from sqlalchemy.pool import NullPool
 import pandas as pd
 import numpy as np
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = "varshitha_task_manager_secret_2024"
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', "varshitha_task_manager_secret_2024")
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+    "poolclass": NullPool
+}
+
 db.init_app(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # ===== LOGIN CONFIG =====
 login_manager = LoginManager()
@@ -142,7 +152,7 @@ def add_task():
         description=data.get('description', ''),
         priority=data['priority'],
         status=data.get('status', 'Pending'),
-        user_id=current_user.id  # User ID add chesam
+        user_id=current_user.id
     )
     db.session.add(new_task)
     db.session.commit()
