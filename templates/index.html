@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script> 
+</head>
+<body>
+    <h1>Task Manager</h1>
+    
+    <!-- 1. TASK ADD CHESE FORM -->
+    <form id="taskForm">
+        <input type="text" id="title" placeholder="Task Title" required>
+        <input type="text" id="description" placeholder="Description">
+        <select id="priority">
+            <option value="Low">Low</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="High">High</option>
+        </select>
+        <button type="submit">Add Task</button>
+    </form>
+
+    <!-- 2. TASKS LIST CHUPINCHE AREA -->
+    <h2>All Tasks:</h2>
+    <div id="taskList"></div>
+    <h2>📊 Analytics Dashboard</h2>
+<div id="analytics" style="background:white; padding:20px; border-radius:12px; margin-top:20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></div>
+
+    <!-- 3. JAVASCRIPT CODE -->
+    <script>
+        // ← NEW: WEBSOCKET CONNECTION
+        const socket = io();
+
+        // ← NEW: SERVER NUNCHI UPDATE VASTHE AUTOMATIC GA RUN AVTUNDI
+        socket.on('analytics_update', (data) => {
+            document.getElementById('analytics').innerHTML = `
+                <h3 style="margin-top:0;">Task Summary</h3>
+                <p><b>Total Tasks:</b> ${data.total_tasks}</p>
+                <p><b>Completion Rate:</b> ${data.completion_rate}%</p>
+                <hr>
+                <p><b>Priority:</b> 🔥 High: ${data.priority_breakdown.High || 0} | ⚡ Medium: ${data.priority_breakdown.Medium || 0} | 🟢 Low: ${data.priority_breakdown.Low || 0}</p>
+                <p><b>Status:</b> ✅ Completed: ${data.status_breakdown.Completed || 0} | ⏳ Pending: ${data.status_breakdown.Pending || 0}</p>
+            `;
+        });
+        function loadAnalytics() {
+    fetch('/api/analytics')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('analytics').innerHTML = `
+                <h3 style="margin-top:0;">Task Summary</h3>
+                <p><b>Total Tasks:</b> ${data.total_tasks}</p>
+                <p><b>Completion Rate:</b> ${data.completion_rate}%</p>
+                <hr>
+                <p><b>Priority:</b> 🔥 High: ${data.priority_breakdown.High || 0} | ⚡ Medium: ${data.priority_breakdown.Medium || 0} | 🟢 Low: ${data.priority_breakdown.Low || 0}</p>
+                <p><b>Status:</b> ✅ Completed: ${data.status_breakdown.Completed || 0} | ⏳ Pending: ${data.status_breakdown.Pending || 0}</p>
+            `;
+        });
+}
+        // TASKS LOAD CHESE FUNCTION
+        function loadTasks() {
+            fetch('/api/tasks')
+                .then(res => res.json())
+                .then(tasks => {
+                    const list = document.getElementById('taskList');
+                    list.innerHTML = '';
+                    if (tasks.length === 0) {
+                        list.innerHTML = '<p>No tasks yet. Add one!</p>';
+                        return;
+                    }
+                    tasks.forEach(task => {
+                        list.innerHTML += `
+                            <div style="border:1px solid #ccc; padding:10px; margin:5px;">
+                                <b>${task.title}</b> - ${task.status} [${task.priority}] <br>
+                                ${task.description || 'No description'} <br><br>
+                                <button onclick="updateStatus(${task.id}, 'Completed')">✅ Done</button>
+                                <button onclick="deleteTask(${task.id})">🗑️ Delete</button>
+                            </div>
+                        `;
+                    });
+                });
+        }
+
+        // TASK ADD CHESE CODE
+        document.getElementById('taskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const priority = document.getElementById('priority').value;
+            
+            fetch('/api/tasks', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: title,
+                    description: description,
+                    priority: priority,
+                    status: 'Pending'
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('title').value = '';
+                document.getElementById('description').value = '';
+                loadTasks();
+                
+            });
+        });
+
+        // DELETE FUNCTION
+        function deleteTask(id) {
+            if (confirm('Are you sure?')) {
+                fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(data => loadTasks());
+            }
+        }
+
+        // UPDATE STATUS FUNCTION  
+        function updateStatus(id, newStatus) {
+            fetch(`/api/tasks/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(res => res.json())
+            .then(data => loadTasks());
+        }
+
+        // PAGE LOAD AVAGANE TASKS CHUPINCHU
+        loadTasks();
+        loadAnalytics();
+        
+    </script>
+</body>
+</html>
